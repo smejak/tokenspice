@@ -16,7 +16,7 @@ class SimStrategy(SimStrategyBase.SimStrategyBase):
 
         #===new attributes specific to this netlist===
 
-        #initial # mkts
+        #initial # sellers
         self.init_n_sellers = 1
 
         # (taken from constants.py)
