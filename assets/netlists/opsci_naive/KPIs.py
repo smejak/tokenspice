@@ -14,27 +14,32 @@ class KPIs(KPIsBase.KPIsBase):
         super().__init__(time_step)
                 
         #for these, append a new value with each tick
-        self._granttakers_revenue_per_tick__per_tick: List[float] = []
-        self._revenue_per_marketplace_per_s__per_tick: List[float] = []
-        self._n_marketplaces__per_tick: List[int] = []
-        self._marketplace_percent_toll_to_ocean__per_tick: List[float] = []
+        self._total_assets_per_tick: List[float] = [] # how many assets are in the marketplace
+        self._n_sellers_per_tick: List[float] = []
         self._total_OCEAN_minted__per_tick: List[float] = []
         self._total_OCEAN_burned__per_tick: List[float] = []
         self._total_OCEAN_minted_USD__per_tick: List[float] = []
         self._total_OCEAN_burned_USD__per_tick: List[float] = []
+        self._sellers_revenue_per_tick: List[float] = []
+        self._revenue_per_seller_per_s__per_tick: List[float] = []
 
     def takeStep(self, state):
         super().takeStep(state) #parent e.g. increments self._tick
-        
-        self._granttakers_revenue_per_tick__per_tick.append(
-            state.grantTakersSpentAtTick())
+
+        # self._granttakers_revenue_per_tick__per_tick.append(
+        #     state.grantTakersSpentAtTick())
         
         am = state.getAgent("marketplaces1")
-        self._revenue_per_marketplace_per_s__per_tick.append(
-            am.revenuePerMarketplacePerSecond())
-        self._n_marketplaces__per_tick.append(am.numMarketplaces())
-        self._marketplace_percent_toll_to_ocean__per_tick.append(
-            state.marketplacePercentTollToOcean())
+        self._total_assets_per_tick.append(
+            am.getTotalAssets()) #TODO: getTotalAssets()
+
+        sellers = state.getAgent("sellers")
+        self._revenue_per_seller_per_s__per_tick.append(
+            sellers.revenuePerSellerPerSecond()) #TODO: revenuePerSellerPerSecond()
+        self._n_sellers_per_tick.append(
+            sellers.numSellers()) #TODO: NumSellers()
+        self._sellers_revenue_per_tick.append(
+            sellers.revenuePerTick()) #TODO: revenuePerTick()
 
         O_minted = state.totalOCEANminted()
         O_burned = state.totalOCEANburned()
@@ -49,110 +54,57 @@ class KPIs(KPIsBase.KPIsBase):
 
     def tick(self) -> int:
         """# ticks since start of run"""
-        assert len(self._revenue_per_marketplace_per_s__per_tick) == self._tick
+        assert len(self._revenue_per_seller_per_s__per_tick) == self._tick
         return self._tick
         
     #=======================================================================
-    #growth rate
-    def mktsRNDToSalesRatio(self) -> float:
-        """Return the ratio ($ into ocean R&D) / ($ from ocean sales )
-        We average over the last month. This is important
-        because the grant takers often only get income monthly.
-        """
-        monthly_RND = self.grantTakersMonthlyRevenueNow()
-        monthly_sales = self.oceanMonthlyRevenueNow()
-        if monthly_RND == 0.0:
-            ratio = 0.0
-        else:
-            ratio = monthly_RND / monthly_sales
-        return ratio
-        
-    #=======================================================================
-    #revenue numbers: grant takers
-    def grantTakersMonthlyRevenueNow(self) -> float:
-        ticks_1mo = self._ticksOneMonth()
-        rev_per_tick = self._granttakers_revenue_per_tick__per_tick
-        return float(sum(rev_per_tick[-ticks_1mo:]))
-        
-    #=======================================================================
-    #revenue numbers: 1 marketplace
-    def onemktMonthlyRevenueNow(self) -> float:
+    #revenue numbers: 1 seller
+    def oneSellerMonthlyRevenueNow(self) -> float:
         t2 = self.elapsedTime()
         t1 = t2 - S_PER_MONTH
-        return self._onemktRevenueOverInterval(t1, t2)
+        return self._oneSellerRevenueOverInterval(t1, t2)
     
-    def onemktAnnualRevenueNow(self) -> float:
+    def oneSellerAnnualRevenueNow(self) -> float:
         t2 = self.elapsedTime()
         t1 = t2 - S_PER_YEAR
-        return self._onemktRevenueOverInterval(t1, t2)
+        return self._oneSellerRevenueOverInterval(t1, t2)
     
-    def onemktAnnualRevenueOneYearAgo(self) -> float:
+    def oneSellerAnnualRevenueOneYearAgo(self) -> float:
         t2 = self.elapsedTime() - S_PER_YEAR
         t1 = t2 - S_PER_YEAR
-        return self._onemktRevenueOverInterval(t1, t2)
+        return self._oneSellerRevenueOverInterval(t1, t2)
             
-    def _onemktRevenueOverInterval(self, t1: int, t2:int) -> float:
-        return self._revenueOverInterval(t1, t2, self.onemktRevenuePerSecond)
+    def _oneSellerRevenueOverInterval(self, t1: int, t2:int) -> float:
+        return self._revenueOverInterval(t1, t2, self.oneSellerRevenuePerSecond)
 
-    def onemktRevenuePerSecond(self, tick) -> float:
-        """Returns onemkt's revenue per second at a given tick"""
-        return self._revenue_per_marketplace_per_s__per_tick[tick]
+    def oneSellerRevenuePerSecond(self, tick) -> float:
+        """Returns oneSeller's revenue per second at a given tick"""
+        return self._revenue_per_seller_per_s__per_tick[tick]
 
     #=======================================================================
-    #revenue numbers: n marketplaces
-    def allmktsMonthlyRevenueNow(self) -> float:
+    #revenue numbers: n sellers
+    def allSellersMonthlyRevenueNow(self) -> float:
         t2 = self.elapsedTime()
         t1 = t2 - S_PER_MONTH
-        return self._allmktsRevenueOverInterval(t1, t2)
+        return self._allSellersRevenueOverInterval(t1, t2)
     
-    def allmktsAnnualRevenueNow(self) -> float:
+    def allSellersAnnualRevenueNow(self) -> float:
         t2 = self.elapsedTime()
         t1 = t2 - S_PER_YEAR
-        return self._allmktsRevenueOverInterval(t1, t2)
+        return self._allSellersRevenueOverInterval(t1, t2)
     
-    def allmktsAnnualRevenueOneYearAgo(self) -> float:
+    def allSellersAnnualRevenueOneYearAgo(self) -> float:
         t2 = self.elapsedTime() - S_PER_YEAR
         t1 = t2 - S_PER_YEAR
-        return self._allmktsRevenueOverInterval(t1, t2)
+        return self._allSellersRevenueOverInterval(t1, t2)
 
-    def allmktsRevenuePerSecond(self, tick) -> float:
+    def allSellersRevenuePerSecond(self, tick) -> float:
         """Returns allmkt's revenue per second at a given tick"""
-        return self._revenue_per_marketplace_per_s__per_tick[tick] \
-            * self._n_marketplaces__per_tick[tick]
+        return self._revenue_per_seller_per_s__per_tick[tick] \
+            * self._n_sellers_per_tick[tick]
             
-    def _allmktsRevenueOverInterval(self, t1: int, t2:int) -> float:
-        return self._revenueOverInterval(t1, t2, self.allmktsRevenuePerSecond)
-    
-    #=======================================================================
-    #revenue numbers: ocean community
-    def oceanMonthlyRevenueNow(self) -> float:
-        t2 = self.elapsedTime()
-        t1 = t2 - S_PER_MONTH
-        return self._oceanRevenueOverInterval(t1, t2)
-    
-    def oceanAnnualRevenueNow(self) -> float:
-        t2 = self.elapsedTime()
-        t1 = t2 - S_PER_YEAR
-        return self._oceanRevenueOverInterval(t1, t2)
-    
-    def oceanMonthlyRevenueOneMonthAgo(self) -> float:
-        t2 = self.elapsedTime() - S_PER_MONTH
-        t1 = t2 - S_PER_MONTH
-        return self._oceanRevenueOverInterval(t1, t2)
-    
-    def oceanAnnualRevenueOneYearAgo(self) -> float:
-        t2 = self.elapsedTime() - S_PER_YEAR
-        t1 = t2 - S_PER_YEAR
-        return self._oceanRevenueOverInterval(t1, t2)
-            
-    def _oceanRevenueOverInterval(self, t1: int, t2:int) -> float:
-        return self._revenueOverInterval(t1, t2, self.oceanRevenuePerSecond)
-    
-    def oceanRevenuePerSecond(self, tick) -> float:
-        """Returns ocean's revenue per second at a given tick"""
-        return self._revenue_per_marketplace_per_s__per_tick[tick] \
-            * self._n_marketplaces__per_tick[tick] \
-            * self._marketplace_percent_toll_to_ocean__per_tick[tick]
+    def _allSellersRevenueOverInterval(self, t1: int, t2:int) -> float:
+        return self._revenueOverInterval(t1, t2, self.allSellersRevenuePerSecond)
     
     #=======================================================================
     def _revenueOverInterval(self, t1: int, t2:int, revenuePerSecondFunc) \
@@ -177,31 +129,6 @@ class KPIs(KPIsBase.KPIsBase):
             
             rev += rev_this_tick
         return rev
-        
-    #=======================================================================
-    #revenue growth numbers: ocean community
-    def oceanMonthlyRevenueGrowth(self) -> float:
-        rev1 = self.oceanMonthlyRevenueOneMonthAgo()
-        rev2 = self.oceanMonthlyRevenueNow()
-        if rev1 == 0.0:
-            return INF
-        g = rev2 / rev1 - 1.0
-        return g
-    
-    def oceanAnnualRevenueGrowth(self) -> float:
-        rev1 = self.oceanAnnualRevenueOneYearAgo()
-        rev2 = self.oceanAnnualRevenueNow()
-        if rev1 == 0.0:
-            return INF
-        g = rev2 / rev1 - 1.0
-        return g
-        
-    @enforce_types
-    def valuationPS(self, p_s_ratio: float) -> float:
-        """Use Price/Sales ratio to compute valuation."""
-        annual_revenue = self.oceanAnnualRevenueNow()
-        v = valuation.firmValuationPS(annual_revenue, p_s_ratio)
-        return v
 
     #=======================================================================
     #OCEAN minted & burned per month, as a count (#) and as USD ($)
