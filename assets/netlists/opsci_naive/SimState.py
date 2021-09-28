@@ -2,10 +2,11 @@ from enforce_typing import enforce_types
 from typing import Set
 
 from assets.agents import MinterAgents
-from assets.agents.GrantGivingAgent import GrantGivingAgent
-from assets.agents.GrantTakingAgent import GrantTakingAgent
-from assets.agents.MarketplacesAgent import MarketplacesAgent
-from assets.agents.OCEANBurnerAgent import OCEANBurnerAgent
+from assets.agents.opsci_agents.ResearcherAgent import ResearcherAgent
+from assets.agents.opsci_agents.SellerAgent import SellerAgent
+from assets.agents.opsci_agents.OpsciMarketplaceAgent import OpsciMarketplaceAgent
+from assets.agents.opsci_agents.TokenMinterAgent import TokenMinterAgent
+from assets.agents.opsci_agents.TokenBurnerAgent import TokenBurnerAgent
 from assets.agents.RouterAgent import RouterAgent
 from engine import AgentBase, SimStateBase
 from .KPIs import KPIs
